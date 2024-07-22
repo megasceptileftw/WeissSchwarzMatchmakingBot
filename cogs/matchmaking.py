@@ -4,6 +4,7 @@ import sqlite3
 import os
 import asyncio
 import time
+import math
 from cogs.SetUp import user_in_db
 
 # players who are queueing up are in this list
@@ -27,24 +28,67 @@ def fetch_info(user):
 
 # checks if username is in matches and the result is still N/A
 def in_match(user):
-    match_cursor.execute("SELECT * FROM matches")
+    match_cursor.execute("SELECT * FROM matches WHERE p1=? OR p2=?", (user, user))
     result = match_cursor.fetchall()
 
-    for row in result:
-        if user in row:
-            if row[2] == "N/A":
-                return True
-    
+    for match in result:
+        if match[2] == "N/A":
+            return True
+        
     return False
 
 # checks if username is in queue, true if it is, false if it isn't
 def in_queue(user):
 
-    for x in player_queue:
-        if user == x.user:
+    for players in player_queue:
+        if user == players.user:
             return True
 
     return False
+
+# this youtube vid explains it: https://www.youtube.com/watch?v=M0U7mfeiRhM
+async def elo_update(ctx, won, lost):
+    winner = fetch_info(won)
+    loser = fetch_info(lost)
+
+    tfr_won = 10**(winner.elo / 400)
+    tfr_lost = 10**(loser.elo / 400)
+
+    expect_win_percent_won = tfr_won / (tfr_won + tfr_lost)
+    expect_win_percent_lost = tfr_lost / (tfr_won + tfr_lost)
+    
+    k_factor = 32
+
+    new_winner_elo = winner.elo + k_factor * (1 - expect_win_percent_won)
+    new_loser_elo = loser.elo + k_factor * (0 - expect_win_percent_lost)
+
+    new_winner_elo = math.floor(new_winner_elo)
+    new_loser_elo = math.floor(new_loser_elo)
+
+    if new_loser_elo < 1000:
+        new_loser_elo = 1000
+    
+    # update winner stats
+    user_cursor.execute("SELECT username, elo, wins, losses FROM users WHERE username=?", (winner.user,))
+    result = user_cursor.fetchone()
+    
+    query = "UPDATE users SET elo=?, wins=? WHERE username=?"
+    updated_values = (new_winner_elo, result[2] + 1, winner.user)
+    user_cursor.execute(query, updated_values)
+    user_database.commit()
+
+    #update loser stats
+    user_cursor.execute("SELECT username, elo, wins, losses FROM users WHERE username=?", (loser.user,))
+    result2 = user_cursor.fetchone()
+
+    query2 = "UPDATE users SET elo=?, losses=? WHERE username=?"
+    updated_values2 = (new_loser_elo, result2[3] + 1, loser.user)
+    user_cursor.execute(query2, updated_values2)
+    user_database.commit()
+
+    await ctx.send("Player stats have been updated!")
+    await ctx.send(f"{winner.user} = {winner.elo} --> {new_winner_elo}")
+    await ctx.send(f"{loser.user} = {loser.elo} --> {new_loser_elo}")
 
 
 # player class with player info and matchmaking functions
@@ -150,6 +194,43 @@ class matchmaking(commands.Cog):
                 player_queue.remove(x)
                 await ctx.send(f"User: {ctx.author.name} has been removed from the queue")
                 return
+    
+
+    # winner uses this command to report their win
+    @commands.command(pass_context = True)
+    async def report(self, ctx):
+
+        # check if the user has registered in the database, function in SetUp.py
+        if user_in_db(ctx.author.name) == False:
+            await ctx.send(f"User: {ctx.author.name} has not yet registered")
+            return
+
+        # checking if player is not in a match
+        if in_match(ctx.author.name) == False:
+            await ctx.send(f"User: {ctx.author.name} is not in a match")
+            return
+        
+        winner = ctx.author.name
+        loser = ""
+
+        match_cursor.execute("SELECT * FROM matches WHERE p1=? OR p2=?", (winner, winner))
+        result = match_cursor.fetchall()
+
+        for match in result:
+            if match[2] == "N/A":
+                query = "UPDATE matches SET winner=?, loser=?"
+
+                if match[0] == winner:
+                    loser = match[1]
+                if match[1] == winner:
+                    loser = match[0]
+                
+                values = (winner, loser)
+                match_cursor.execute(query, values)
+                match_database.commit()
+                await ctx.send(f"User: {winner} has won the match!")
+
+        await elo_update(ctx, winner, loser)
 
 async def setup(client):
     await client.add_cog(matchmaking(client))  
