@@ -47,6 +47,7 @@ def in_queue(user):
     return False
 
 # this youtube vid explains it: https://www.youtube.com/watch?v=M0U7mfeiRhM
+# updates elo and wins/losses
 async def elo_update(ctx, won, lost):
     winner = fetch_info(won)
     loser = fetch_info(lost)
