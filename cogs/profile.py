@@ -12,6 +12,7 @@ user_cursor = user_database.cursor()
 match_database = sqlite3.connect('matches.db')
 match_cursor = match_database.cursor()
 
+# check rank of specific user
 def check_rank(user):
     user_cursor.execute("SELECT * FROM users ORDER BY elo DESC")
     result = user_cursor.fetchall()

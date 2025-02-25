@@ -172,6 +172,7 @@ class matchmaking(commands.Cog):
             if ((time.time() - start) > 900):
                 await ctx.send("Exiting queue")
                 player_queue.remove(p1)
+                p1.is_in_queue = False
                 return
             
         return
@@ -193,6 +194,7 @@ class matchmaking(commands.Cog):
         for x in player_queue:
             if ctx.author.name == x.user:
                 player_queue.remove(x)
+                x.is_in_queue = False
                 await ctx.send(f"User: {ctx.author.name} has been removed from the queue")
                 return
     
@@ -219,14 +221,14 @@ class matchmaking(commands.Cog):
 
         for match in result:
             if match[2] == "N/A":
-                query = "UPDATE matches SET winner=?, loser=?"
+                query = "UPDATE matches SET winner=?, loser=? WHERE winner=?"
 
                 if match[0] == winner:
                     loser = match[1]
                 if match[1] == winner:
                     loser = match[0]
                 
-                values = (winner, loser)
+                values = (winner, loser, 'N/A')
                 match_cursor.execute(query, values)
                 match_database.commit()
                 await ctx.send(f"User: {winner} has won the match!")
