@@ -16,6 +16,11 @@ client = commands.Bot(command_prefix = '!', intents = intents)
 @client.event
 async def on_ready():
     await client.change_presence(activity=discord.Streaming(name='Huniepop', url='https://www.twitch.tv/alexxvgc'))
+    
+    # states that the bot is ready in the desired channel
+    matchmaking_channel = client.get_channel(matchmaking_id)
+    await matchmaking_channel.send("The bot is now ready for use!")
+
     print("The bot is now ready for use!")
     print("-----------------------------")
 

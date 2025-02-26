@@ -37,7 +37,7 @@ class SetUp(commands.Cog):
         
         query = "INSERT INTO users VALUES(?, ?, ?, ?)" 
         # fetching desired role for matchmaking
-        role_name = "Test"
+        role_name = "Matchmaking"
         role = discord.utils.get(ctx.author.guild.roles, name=role_name)
     
         try:
@@ -59,7 +59,7 @@ class SetUp(commands.Cog):
     async def unregister(self, ctx):    
         
         # fetching desired role for removal
-        role_name = "Test"
+        role_name = "Matchmaking"
         role = discord.utils.get(ctx.author.guild.roles, name=role_name)
 
         if user_in_db(ctx.author.name):
@@ -73,6 +73,15 @@ class SetUp(commands.Cog):
             await ctx.send(f"User: {ctx.author.name} no longer has the {role_name} role")
         else:
             await ctx.send(f"User: {ctx.author.name} not registered yet")
+
+    @commands.command(aliases=["quit"])
+    @commands.has_permissions(administrator=True)
+    async def close(client, ctx):
+        try:
+            await ctx.send("The bot is ending :(")
+            exit()
+        except Exception as e:
+            await ctx.send(f"An error has occurred: {e}")
 
 async def setup(client):
     await client.add_cog(SetUp(client))    
