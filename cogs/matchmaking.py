@@ -138,8 +138,11 @@ class matchmaking(commands.Cog):
 
         # check if the user has registered in the database, function in SetUp.py
         if user_in_db(ctx.author.name) == False:
-            await ctx.send(f"User: {ctx.author.name} has not yet registered")
-            return
+            register_command = self.client.get_command('register')
+            if register_command:
+                await ctx.invoke(register_command)
+            else:
+                await ctx.send("The 'register' command is unavailable")
 
         # checking if already in a match
         if in_match(ctx.author.name):
