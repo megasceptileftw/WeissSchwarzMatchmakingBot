@@ -5,7 +5,7 @@ import os
 from cogs.SetUp import user_in_db
 from table2ascii import table2ascii as t2a, PresetStyle
 
-# connecting to database
+# connecting to the databases
 user_database = sqlite3.connect('users.db')
 user_cursor = user_database.cursor()
 
@@ -76,4 +76,3 @@ class profile(commands.Cog):
 
 async def setup(client):
     await client.add_cog(profile(client))  
-

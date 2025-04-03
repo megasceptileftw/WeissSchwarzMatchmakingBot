@@ -10,14 +10,17 @@ from cogs.SetUp import user_in_db
 # players who are queueing up are in this list
 player_queue = []
 
-# connecting to database
+# connecting to the databases
 user_database = sqlite3.connect('users.db')
 user_cursor = user_database.cursor()
 
 match_database = sqlite3.connect('matches.db')
 match_cursor = match_database.cursor()
-match_database.execute("CREATE TABLE IF NOT EXISTS matches(p1 STRING, p2 INT, winner INT, loser INT)")
+match_database.execute("CREATE TABLE IF NOT EXISTS matches(p1 STRING, p2 STRING, winner INT, loser INT)")
 
+challenge_database = sqlite3.connect('challenge.db')
+challenge_cursor = challenge_database.cursor()
+challenge_database.execute("CREATE TABLE IF NOT EXISTS challenge(p1 STRING, p2 STRING, accept STRING)")
 
 # fetches data from database and returns with as player class
 def fetch_info(user):
@@ -45,6 +48,17 @@ def in_queue(user):
             return True
 
     return False
+
+#  check if user has a challenge, had to move to matchmaking.py from tournament.py because
+#  I think the files would rely on each other idk
+def user_in_chall(user):
+    challenge_cursor.execute("SELECT p1, p2 FROM challenge WHERE p1=? OR p2=?", (user, user))
+    result = challenge_cursor.fetchall()
+
+    if result:
+        return True
+    else:
+        return False
 
 # this youtube vid explains it: https://www.youtube.com/watch?v=M0U7mfeiRhM
 # updates elo and wins/losses
@@ -136,7 +150,7 @@ class matchmaking(commands.Cog):
     @commands.command(pass_context = True)
     async def play(self, ctx):
 
-        # check if the user has registered in the database, function in SetUp.py
+        # check if the user has registered in the database, command in SetUp.py
         if user_in_db(ctx.author.name) == False:
             register_command = self.client.get_command('register')
             if register_command:
@@ -152,6 +166,10 @@ class matchmaking(commands.Cog):
         # checking if already in queue
         if in_queue(ctx.author.name):
             await ctx.send(f"{ctx.author.name} is aleady in queue")
+            return
+        
+        if user_in_chall(ctx.author.name):
+            await ctx.send(f"{ctx.author.name} has challenge")
             return
 
         # fetch user data, put info into player class
