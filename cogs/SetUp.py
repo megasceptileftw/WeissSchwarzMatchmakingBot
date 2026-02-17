@@ -54,7 +54,7 @@ class SetUp(commands.Cog):
             await ctx.send(f"An error has occurred: {e}")
     
 
-    # unregister users, remove them from thedatabase, removes role previously added
+    # unregister users, remove them from the database, removes role previously added
     @commands.command(pass_context = True)
     async def unregister(self, ctx):    
         
